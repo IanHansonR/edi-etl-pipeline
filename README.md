@@ -44,6 +44,20 @@ Create a `config.py` file with your database connection settings:
 # See config.example.py for template
 ```
 
+## Testing (Without Database)
+
+Test the parsing logic with sample or your own JSON data **before** connecting to a database:
+
+```powershell
+# Run all tests with sample data
+python tests/run_tests.py
+
+# Test a single JSON interactively
+python tests/test_single.py
+```
+
+See [docs/TEST_README.md](docs/TEST_README.md) for complete testing guide or [docs/QUICKSTART.md](docs/QUICKSTART.md) to get started quickly.
+
 ## Usage
 
 ### Normal incremental processing
@@ -64,12 +78,30 @@ python main.py --reprocess-all
 ## Project Structure
 ```
 Analytics_ETL_Pipeline/
-├── main.py              # Entry point
-├── config.py            # Database configuration (not in git)
-├── security.py          # Security utilities
-├── etl_processor.py     # Core ETL logic
-├── requirements.txt     # Python dependencies
-└── README.md
+├── tests/                         # Test files
+│   ├── __init__.py
+│   ├── run_tests.py               # Automated test runner
+│   ├── test_single.py             # Interactive single JSON test
+│   ├── test_transformers.py       # Unit test framework
+│   ├── sample_test_data.py        # Sample JSON test data
+│   └── config_test.py             # Test configuration (console logging)
+├── docs/                          # Documentation
+│   ├── QUICKSTART.md              # Quick start guide
+│   ├── USAGE_EXAMPLES.md          # Usage examples
+│   ├── TESTING.md                 # Complete testing guide
+│   ├── TEST_README.md             # Testing quick reference
+│   └── edi_etl_implementation_plan_secure_v5.md
+├── main.py                        # Entry point for production
+├── config.py                      # Database configuration (not in git)
+├── config.example.py              # Configuration template
+├── security.py                    # Security utilities
+├── data_validation.py             # Safe data parsing functions
+├── database.py                    # Database operations
+├── etl_processor.py               # Core ETL orchestration
+├── transformers.py                # Order-type specific logic
+├── staging.py                     # Staging table management
+├── requirements.txt               # Python dependencies
+└── README.md                      # This file
 ```
 
 ## Security Notes
