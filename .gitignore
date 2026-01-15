@@ -1,0 +1,43 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment variables and secrets
+.env
+.env.local
+config.ini
+secrets.json
+credentials.json
+
+# Database
+*.db
+*.sqlite
+*.sql
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - IMPORTANT FOR SECURITY
+# Add any files with connection strings or credentials
+db_config.py
+connection_strings.txt
