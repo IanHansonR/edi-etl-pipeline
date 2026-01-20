@@ -98,49 +98,48 @@ def swap_staging_to_production(db_connection):
     """
     SAFETY: Atomic swap of staging tables to production.
     Uses table renaming for near-zero downtime.
+    All renames occur in a single transaction - if any fail, all are rolled back.
     """
-    from database import execute_query
+    from database import execute_query, transaction
     from security import sanitize_error_message
-    
+
     logging.info("Beginning staging to production swap")
 
-    # This is done in a transaction for atomicity
-    execute_query(db_connection, "BEGIN TRANSACTION")
-
     try:
-        # Rename production tables to backup
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_BOM_Component', 'EDI_Report_BOM_Component_Backup'
-        """)
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_Detail', 'EDI_Report_Detail_Backup'
-        """)
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_Header', 'EDI_Report_Header_Backup'
-        """)
+        # All renames in a single atomic transaction
+        with transaction(db_connection):
+            # Rename production tables to backup
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_BOM_Component', 'EDI_Report_BOM_Component_Backup'
+            """)
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_Detail', 'EDI_Report_Detail_Backup'
+            """)
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_Header', 'EDI_Report_Header_Backup'
+            """)
 
-        # Rename staging tables to production
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_BOM_Component_Staging', 'EDI_Report_BOM_Component'
-        """)
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_Detail_Staging', 'EDI_Report_Detail'
-        """)
-        execute_query(db_connection, """
-            EXEC sp_rename 'EDI_Report_Header_Staging', 'EDI_Report_Header'
-        """)
+            # Rename staging tables to production
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_BOM_Component_Staging', 'EDI_Report_BOM_Component'
+            """)
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_Detail_Staging', 'EDI_Report_Detail'
+            """)
+            execute_query(db_connection, """
+                EXEC sp_rename 'EDI_Report_Header_Staging', 'EDI_Report_Header'
+            """)
 
-        execute_query(db_connection, "COMMIT TRANSACTION")
+        # Transaction committed successfully
         logging.info("Staging tables successfully promoted to production")
 
-        # Drop backup tables after successful swap
+        # Drop backup tables after successful swap (separate transactions - not critical)
         execute_query(db_connection, "DROP TABLE EDI_Report_BOM_Component_Backup")
         execute_query(db_connection, "DROP TABLE EDI_Report_Detail_Backup")
         execute_query(db_connection, "DROP TABLE EDI_Report_Header_Backup")
         logging.info("Backup tables dropped")
 
     except Exception as e:
-        execute_query(db_connection, "ROLLBACK TRANSACTION")
         logging.error(f"Failed to swap staging to production: {sanitize_error_message(e)}")
         raise
 

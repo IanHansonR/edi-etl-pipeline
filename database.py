@@ -1,10 +1,44 @@
 import logging
 from typing import Optional, List
+from contextlib import contextmanager
 from staging import get_table_name
 
 
+@contextmanager
+def transaction(connection):
+    """
+    Context manager for atomic database transactions.
+    All queries inside the 'with' block run in a single transaction.
+
+    Usage:
+        with transaction(db_connection):
+            execute_query(db_connection, "INSERT ...")
+            execute_query(db_connection, "UPDATE ...")
+        # Commits on success, rolls back on exception
+    """
+    original_autocommit = connection.autocommit
+    connection.autocommit = False
+
+    try:
+        yield connection
+        connection.commit()
+        logging.debug("Transaction committed successfully")
+    except Exception as e:
+        connection.rollback()
+        logging.error(f"Transaction rolled back due to: {type(e).__name__}")
+        raise
+    finally:
+        connection.autocommit = original_autocommit
+
+
 def execute_query(connection, query: str, params: Optional[List] = None):
-    """Execute parameterized query - SECURITY: Always use parameters"""
+    """
+    Execute parameterized query - SECURITY: Always use parameters.
+
+    Commit behavior:
+    - If connection.autocommit is True (default): commits after each query
+    - If connection.autocommit is False (inside transaction): skips commit
+    """
     cursor = connection.cursor()
     try:
         if params:
@@ -20,14 +54,18 @@ def execute_query(connection, query: str, params: Optional[List] = None):
                 results.append(dict(zip(columns, row)))
             return results
         else:
-            connection.commit()
+            # Only commit if autocommit is enabled (not inside a transaction block)
+            if connection.autocommit:
+                connection.commit()
             # For INSERT with OUTPUT, return the generated ID
             if 'OUTPUT INSERTED.Id' in query.upper():
                 row = cursor.fetchone()
                 return [{'Id': row[0]}] if row else []
             return []
     except Exception as e:
-        connection.rollback()
+        # Only rollback if we're in autocommit mode (transaction() handles its own rollback)
+        if connection.autocommit:
+            connection.rollback()
         # SECURITY: Don't expose query or parameters in error
         logging.error(f"Query execution failed: {type(e).__name__}: {str(e)[:200]}")
         raise
