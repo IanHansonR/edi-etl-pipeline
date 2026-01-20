@@ -223,8 +223,8 @@ def process_prepack_with_mock(edi_data, download_date, source_table_id, version,
             uom=line_item.get('UOMTypeCode'),
             unit_price=safe_float_conversion(line_item.get('UnitPrice', 0)),
             retail_price=None,
-            inner_pack=None,
-            qty_per_inner_pack=None,
+            inner_pack=safe_int_conversion(line_item.get('Pack', 1)),
+            qty_per_inner_pack=safe_int_conversion(line_item.get('PackSize', 1)),
             dc=parse_destination_dc(line_item.get('DestinationInfo')),
             store_number=None,
             is_bom=True
@@ -238,7 +238,7 @@ def process_prepack_with_mock(edi_data, download_date, source_table_id, version,
                 component_size=bom_component.get('SizeDescription'),
                 component_qty=safe_int_conversion(bom_component.get('Quantity', 1)),
                 component_unit_price=safe_float_conversion(bom_component.get('UnitPrice', 0)),
-                component_retail_price=None
+                component_retail_price=safe_float_conversion(bom_component.get('RetailPrice', 0))
             )
 
 
@@ -271,6 +271,9 @@ def process_bulk_with_mock(edi_data, download_date, source_table_id, version, mo
         pack_size_val = line_item.get('PackSize')
         inner_pack = safe_int_conversion(pack_size_val) if pack_size_val else None
 
+        pack_qty = line_item.get('Pack')
+        qty_per_inner_pack = safe_int_conversion(pack_qty) if pack_qty else None
+
         mock_db.insert_detail(
             header_id=header_id,
             style=line_item.get('VendorItemNumber'),
@@ -283,7 +286,7 @@ def process_bulk_with_mock(edi_data, download_date, source_table_id, version, mo
             unit_price=safe_float_conversion(line_item.get('UnitPrice', 0)),
             retail_price=retail_price,
             inner_pack=inner_pack,
-            qty_per_inner_pack=None,
+            qty_per_inner_pack=qty_per_inner_pack,
             dc=parse_destination_dc(line_item.get('DestinationInfo')),
             store_number=None,
             is_bom=False

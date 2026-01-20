@@ -5,7 +5,7 @@ from database import insert_header, insert_detail, insert_bom_component
 
 def process_prepack_order(edi_data, download_date, source_table_id, version, db_connection):
     """
-    Process PREPACK orders with security validations.
+    Process PREPACK orders with security validations. Made for 88 Kohls.
     """
     # 1. Extract header info
     po_header = edi_data['PurchaseOrderHeader']
@@ -45,8 +45,8 @@ def process_prepack_order(edi_data, download_date, source_table_id, version, db_
             uom=line_item.get('UOMTypeCode'),
             unit_price=safe_float_conversion(line_item.get('UnitPrice', 0)),
             retail_price=None,
-            inner_pack=None,
-            qty_per_inner_pack=None,
+            inner_pack=safe_int_conversion(line_item.get('Pack', 1)),  # edit
+            qty_per_inner_pack=safe_int_conversion(line_item.get('PackSize', 1)), # edit
             dc=parse_destination_dc(line_item.get('DestinationInfo')),
             store_number=None,
             is_bom=True,
@@ -61,14 +61,14 @@ def process_prepack_order(edi_data, download_date, source_table_id, version, db_
                 component_size=bom_component.get('SizeDescription'),
                 component_qty=safe_int_conversion(bom_component.get('Quantity', 1)),
                 component_unit_price=safe_float_conversion(bom_component.get('UnitPrice', 0)),
-                component_retail_price=None,
+                component_retail_price=safe_float_conversion(bom_component.get('RetailPrice',0)), # edit
                 db_connection=db_connection
             )
 
 
 def process_bulk_order(edi_data, download_date, source_table_id, version, db_connection):
     """
-    Process BULK orders with security validations.
+    Process BULK orders with security validations. Made for 88 Kohls.
     """
     # 1. Extract header info
     po_header = edi_data['PurchaseOrderHeader']
@@ -98,6 +98,9 @@ def process_bulk_order(edi_data, download_date, source_table_id, version, db_con
         pack_size_val = line_item.get('PackSize')
         inner_pack = safe_int_conversion(pack_size_val) if pack_size_val else None
 
+        pack_qty = line_item.get('Pack') # edit2
+        qty_per_inner_pack = safe_int_conversion(pack_qty) if pack_qty else None # edit2
+
         insert_detail(
             header_id=header_id,
             style=line_item.get('VendorItemNumber'),
@@ -110,7 +113,7 @@ def process_bulk_order(edi_data, download_date, source_table_id, version, db_con
             unit_price=safe_float_conversion(line_item.get('UnitPrice', 0)),
             retail_price=retail_price,
             inner_pack=inner_pack,
-            qty_per_inner_pack=None,
+            qty_per_inner_pack=qty_per_inner_pack, # edit2
             dc=parse_destination_dc(line_item.get('DestinationInfo')),
             store_number=None,
             is_bom=False,
@@ -133,4 +136,4 @@ def detect_order_type(edi_data):
             if 'BOMDetails' in detail and detail['BOMDetails']:
                 return 'PREPACK'
 
-    return 'BULK'  # Default to BULK for all other types
+    return 'BULK'  # Default to BULK for all other type

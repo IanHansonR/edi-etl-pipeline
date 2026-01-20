@@ -46,6 +46,7 @@ def process_edi_transmissions(source_db_connection, target_db_connection, reproc
                 WHERE TransactionType = '850'
                 AND Status = 'downloaded'
             """
+        # TODO: Status in table now is downloaded or obselete for reprocessing all.
         else:
             where_clause = """
                 WHERE TransactionType = '850'
