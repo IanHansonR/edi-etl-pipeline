@@ -44,7 +44,7 @@ def process_edi_transmissions(source_db_connection, target_db_connection, reproc
         if reprocess_all:
             where_clause = """
                 WHERE TransactionType = '850'
-                AND Status = 'downloaded'
+                AND Status in ('downloaded', 'Obsolete')
             """
         else:
             where_clause = """
