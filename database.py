@@ -156,7 +156,7 @@ def mark_all_as_processed(db_connection):
             ReportingProcessStatus = 'Success',
             ReportingProcessError = NULL
         WHERE TransactionType = '850'
-        AND Status = 'downloaded'
+        AND Status in ('downloaded', 'Obsolete')
     """
     execute_query(db_connection, query)
     logging.info("Marked all EDI 850 records as successfully processed")
