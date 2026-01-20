@@ -63,11 +63,48 @@ def safe_float_conversion(value: Any, default: float = 0.0) -> float:
 
 
 def parse_destination_dc(destination_info):
-    """Extract DC information from DestinationInfo structure"""
-    # This would parse the SDQ structure to extract DC codes
-    # Implementation depends on business rules for DC assignment
-    if destination_info and 'SDQ' in destination_info:
-        # Could extract from SDQ fields (SDQ03, SDQ05, etc. are DC codes)
-        # For now, return None - implement based on business logic
-        return None
+    """
+    DEPRECATED: Use parse_store_allocations instead.
+    Kept for backwards compatibility.
+    """
     return None
+
+
+def parse_store_allocations(destination_info):
+    """
+    Parse SDQ structure to extract store number and quantity allocations.
+
+    SDQ structure:
+    - SDQ01: UOM for quantities
+    - SDQ02: Unknown (ignored)
+    - SDQ03, SDQ05, SDQ07...: Store numbers (odd positions after SDQ02)
+    - SDQ04, SDQ06, SDQ08...: Quantities for each store (even positions after SDQ02)
+
+    Returns:
+        List of tuples: [(store_number, qty), ...] or empty list if no valid data
+    """
+    if not destination_info or 'SDQ' not in destination_info:
+        return []
+
+    sdq = destination_info['SDQ']
+    allocations = []
+
+    # Start at SDQ03 (index 3), process pairs: store at odd index, qty at even index
+    i = 3
+    while True:
+        store_key = f'SDQ{i:02d}'
+        qty_key = f'SDQ{i+1:02d}'
+
+        # Check if both keys exist
+        if store_key not in sdq or qty_key not in sdq:
+            break
+
+        store_number = sdq[store_key]
+        qty = safe_int_conversion(sdq[qty_key], default=0)
+
+        if store_number and qty > 0:
+            allocations.append((store_number, qty))
+
+        i += 2  # Move to next pair
+
+    return allocations
